@@ -15,7 +15,8 @@ Implemented:
 
 - Python project setup in `pyproject.toml`
 - dependency locking with `uv.lock`
-- formatting and linting task via `taskipy`
+- formatting, linting, pre-commit, and test tasks via `taskipy`
+- GitHub Actions CI workflow for pre-commit and tests
 - dataset download and extraction script at `bin/download_dataset.py`
 - downloaded raw dataset files under `data/raw/network-intrusion-dataset/`
 
@@ -60,10 +61,19 @@ Install dependencies:
 uv sync
 ```
 
-Run formatting and linting:
+Install the local Git pre-commit hook once:
 
 ```bash
+uv run pre-commit install
+```
+
+Run formatting, linting, pre-commit checks, and tests:
+
+```bash
+uv run task format
 uv run task lint
+uv run task precommit
+uv run task test
 ```
 
 ## Download The Dataset
@@ -105,7 +115,6 @@ These raw files should be treated as input data. Cleaned, merged, or split datas
 
 ## Development Notes
 
-`pyproject.toml` defines the project dependencies and developer tasks. Black is configured to target Python `3.12`, matching the local runtime.
+`pyproject.toml` defines the project dependencies and developer tasks. Black is configured to target Python `3.12`, matching the local runtime. CI runs `uv run pre-commit run --all-files` and `uv run pytest` on pushes and pull requests targeting `main`.
 
 Generated artifacts such as raw data, processed datasets, trained models, metrics, and figures should generally stay out of Git unless they are small and intentionally included for the course submission.
-

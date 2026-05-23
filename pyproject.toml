@@ -21,8 +21,16 @@ dependencies = [
 target-version = ["py312"]
 
 [tool.taskipy.tasks]
-lint     =   "uv run black . && uv run ruff check --fix ."
-dataset  =   "uv run bin/download_dataset.py"
-train    =   "uv run bin/train.py"
-evaluate =   "uv run bin/evaluate.py"
-detect   =   "uv run bin/detect.py"
+format    = "uv run black . && uv run ruff check --fix ."
+lint      = "uv run black --check . && uv run ruff check ."
+precommit = "uv run pre-commit run --all-files"
+test      = "uv run pytest"
+dataset   = "uv run bin/download_dataset.py"
+train     = "uv run bin/train.py"
+evaluate  = "uv run bin/evaluate.py"
+detect    = "uv run bin/detect.py"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+]
