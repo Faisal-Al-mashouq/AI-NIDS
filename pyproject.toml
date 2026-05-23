@@ -17,6 +17,9 @@ dependencies = [
     "typer>=0.25.1",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
 [tool.black]
 target-version = ["py312"]
 
