@@ -113,6 +113,65 @@ The downloaded dataset currently contains CSV files for multiple traffic capture
 
 These raw files should be treated as input data. Cleaned, merged, or split datasets should be written separately in a future processing step.
 
+## To Contribute
+
+Direct pushes to `main` are not allowed. All changes must go through a pull request from a feature branch.
+
+### Local setup
+
+1. Fork the repository (if you are an external contributor) and clone your fork locally.
+2. Install dependencies and the local pre-commit hook:
+
+   ```bash
+   uv sync
+   uv run pre-commit install
+   ```
+
+3. Make your changes, then run the same checks used in CI:
+
+   ```bash
+   uv run task precommit
+   uv run task test
+   ```
+
+   To auto-format before committing:
+
+   ```bash
+   uv run task format
+   ```
+
+4. Commit your changes. Pre-commit runs automatically on each commit; fix any reported issues and commit again if needed.
+
+### Opening a pull request
+
+1. Update your local `main` and create a branch for your work:
+
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b your-branch-name
+   ```
+
+2. Push the branch to GitHub (never push directly to `main`):
+
+   ```bash
+   git push -u origin your-branch-name
+   ```
+
+3. Open a pull request targeting `main`:
+   - On GitHub: **Compare & pull request** from your branch, or go to **Pull requests → New pull request**.
+   - With the GitHub CLI:
+
+     ```bash
+     gh pr create --base main --head your-branch-name --title "Your PR title" --body "Brief summary of changes"
+     ```
+
+4. Wait for CI to finish. The required check is **`CI / lint-and-test`**, which runs pre-commit on all tracked files and the test suite (see `.github/workflows/ci.yml`).
+5. Address any review feedback by pushing additional commits to the same branch; the PR updates automatically.
+6. Once CI passes and the PR is approved, merge via GitHub. Do not merge by pushing to `main` locally.
+
+For planned features and open work, see `PLAN.md`.
+
 ## Development Notes
 
 `pyproject.toml` defines the project dependencies and developer tasks. Black is configured to target Python `3.12`, matching the local runtime. CI runs `uv run pre-commit run --all-files` and `uv run pytest` on pushes and pull requests targeting `main`.
