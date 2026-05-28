@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 .ruff_cache/
+.pytest_cache/
 
 # Virtual environments
 .venv
@@ -16,3 +17,7 @@ wheels/
 data/raw/**
 data/processed/**
 data/external/**
+
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
