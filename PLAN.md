@@ -269,3 +269,79 @@ Expected outputs:
 - Use the same train/validation/test split for all model families.
 - Avoid comparing models that were trained or evaluated on different data splits.
 - Prefer simple, reproducible experiments before adding complex model architectures.
+
+## Task Split Between Contributors
+
+Contributors:
+
+- **Faisal** : classical and boosted models plus pipeline plumbing
+- **Khalid** : evaluation, deep learning, detection, and testing
+
+The entire plan depends on one hard constraint from the Notes: every model family
+must use the same train/validation/test split. Phases 1 and 2 are therefore a shared
+foundation that must land before the modeling work forks.
+
+### Step 0: Shared Foundation
+
+Build the shared backbone first, since everything downstream depends on it:
+
+- the preprocessing pipeline (`bin/process_data.py`) producing
+  `data/processed/{train,valid,test}.csv`
+- a shared interface contract: the metrics schema for
+  `reports/metrics/model_comparison.csv`, model artifact naming, and how
+  `bin/train.py` / `bin/evaluate.py` load data
+
+Pragmatic parallel start: Faisal owns Phases 1-2, while Khalid builds the evaluation
+harness (`bin/evaluate.py` plus metrics/plotting utilities) against a small mock split.
+Both pieces are prerequisites and are naturally separable.
+
+### Faisal : Classical & Boosted Models + Pipeline Plumbing
+
+- Phase 2: Preprocessing pipeline (`bin/process_data.py`)
+- Phase 3: Baseline models (Logistic Regression, Decision Tree, Random Forest,
+  scikit-learn Gradient Boosting) plus `bin/train.py`
+- Phase 4: Boosted trees (XGBoost, optional LightGBM/CatBoost) plus the feature
+  importance plot
+
+### Khalid : Evaluation, Deep Learning, Detection & Testing
+
+- Phase 1: Data understanding plus `dataset_summary.json` and `class_distribution.png`
+- Shared `bin/evaluate.py` plus metrics/plotting utilities (the reusable scoring code
+  both tracks consume)
+- Phase 5: Deep learning (MLP, optional autoencoder/CNN)
+- Phase 7: Detection script (`bin/detect.py`)
+- Phase 8: Testing and quality (pytest, lint)
+
+### Converge
+
+- Phase 6: Ensemble - done together, since it consumes the best classical, boosted, and
+  deep models from both tracks. Whoever has lighter load drives it.
+- Phase 9: Final report - split by section. Each contributor writes up the models they
+  built; one person owns the final comparison table and cross-model discussion.
+
+### Why This Division Works
+
+- **Balanced load.** Faisal owns more model families (Phases 3-4) plus preprocessing;
+  Khalid owns deep learning plus the surrounding infrastructure (evaluation harness,
+  detection, tests). Roughly even.
+- **Clean ownership of the shared contract.** Putting `bin/evaluate.py`, the metrics
+  schema, and tests on one person (Khalid) prevents two people from defining
+  `model_comparison.csv` differently, which would break the whole comparison.
+- **Low merge conflict surface.** Faisal touches `bin/train.py` plus classical/boosted
+  training; Khalid touches `bin/evaluate.py`, `bin/detect.py`, and `tests/`. They mostly
+  meet at the metrics CSV (append-only) and `src/config.py`.
+- **Respects the dependency chain.** The suggested implementation order is preserved;
+  only the independent branches run in parallel.
+
+### Workflow Notes
+
+All changes go through a pull request from a feature branch; direct pushes to `main` are
+blocked and `CI / lint-and-test` must pass. With two contributors:
+
+- Each person works on their own feature branch and reviews the other's PRs.
+- Land the shared preprocessing and evaluation-contract PRs first, then rebase the model
+  PRs on top to avoid fighting over `src/config.py`, `pyproject.toml`, and the metrics
+  schema.
+- Add new dependencies per phase (e.g., XGBoost only in Phase 4, PyTorch/TensorFlow only
+  in Phase 5) so the two branches do not both edit `pyproject.toml` / `uv.lock` at the
+  same time and create lockfile conflicts.

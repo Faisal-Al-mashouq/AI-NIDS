@@ -18,6 +18,12 @@ data/raw/**
 data/processed/**
 data/external/**
 
+# Reports
+reports/metrics/**
+reports/figures/**
+
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+!reports/metrics/.gitkeep
+!reports/figures/.gitkeep
