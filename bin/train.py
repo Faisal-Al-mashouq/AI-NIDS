@@ -11,6 +11,7 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
 from src.config import settings, logger
 from src.metrics import compute_metrics
@@ -86,6 +87,28 @@ def retrieve_models(models: str) -> Models:
                         (
                             "clf",
                             GradientBoostingClassifier(random_state=seed, verbose=1),
+                        ),
+                    ]
+                ),
+            )
+        case "xgb":
+            return Models(
+                name="xgboost",
+                model=Pipeline(
+                    [
+                        ("scaler", StandardScaler()),
+                        (
+                            "clf",
+                            XGBClassifier(
+                                n_estimators=300,
+                                max_depth=6,
+                                learning_rate=0.1,
+                                subsample=0.9,
+                                colsample_bytree=0.9,
+                                tree_method="hist",
+                                random_state=seed,
+                                eval_metric="logloss",
+                            ),
                         ),
                     ]
                 ),
