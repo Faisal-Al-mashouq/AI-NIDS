@@ -22,6 +22,10 @@ data/external/**
 reports/metrics/**
 reports/figures/**
 
+# Models
+models/base/**
+models/custom/**
+
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
