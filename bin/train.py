@@ -1,9 +1,7 @@
 """Train classical & boosted models on the processed splits."""
 
-import csv
 import time
 import joblib
-import pandas as pd
 from argparse import ArgumentParser
 from tqdm import tqdm
 from sklearn.tree import DecisionTreeClassifier
@@ -14,26 +12,10 @@ from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
 from src.config import settings, logger
-from src.metrics import compute_metrics
-
-from .schemas import Splits, Models, ModelResults
-
-MODEL_ALIASES = ("lr", "dt", "rf", "gb")
-
-
-def load_splits() -> Splits:
-    train_df = pd.read_csv(settings.processed_dir / "train.csv")
-    valid_df = pd.read_csv(settings.processed_dir / "validation.csv")
-    test_df = pd.read_csv(settings.processed_dir / "test.csv")
-
-    return Splits(
-        X_train=train_df.drop(columns=[settings.label_col]),
-        y_train=train_df[settings.label_col],
-        X_valid=valid_df.drop(columns=[settings.label_col]),
-        y_valid=valid_df[settings.label_col],
-        X_test=test_df.drop(columns=[settings.label_col]),
-        y_test=test_df[settings.label_col],
-    )
+from src.metrics import append_comparison_rows, compute_metrics
+from src.schemas import Splits, Models, ModelResults
+from src.constants import MODEL_ALIASES
+from src.data import load_splits
 
 
 def retrieve_models(models: str) -> Models:
@@ -141,37 +123,6 @@ def train_validate_test(models: Models, splits: Splits) -> ModelResults:
     )
 
 
-def save_metrics(results: list[dict]) -> None:
-    settings.metrics_dir.mkdir(parents=True, exist_ok=True)
-    path = settings.metrics_dir / "model_comparison.csv"
-    write_header = not path.exists()
-    with path.open("a", newline="") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=[
-                "model",
-                "split",
-                "precision",
-                "recall",
-                "f1",
-                "false_positive_rate",
-                "false_negative_rate",
-                "roc_auc",
-                "tn",
-                "fp",
-                "fn",
-                "tp",
-                "inference_seconds",
-                "train_seconds",
-            ],
-        )
-        if write_header:
-            writer.writeheader()
-        for row in results:
-            writer.writerow(row)
-    logger.info(f"Appended {len(results)} rows to {path}")
-
-
 def save_models(models: Models) -> None:
     settings.base_model_dir.mkdir(parents=True, exist_ok=True)
     path = settings.base_model_dir / f"{models.name}.joblib"
@@ -194,7 +145,7 @@ def main(models: str) -> None:
         results.extend(train_validate_test(model, splits).metric_rows())
         save_models(model)
 
-    save_metrics(results)
+    append_comparison_rows(results)
 
     logger.info(f"{'-'*10} Training {models} model(s) completed {'-'*10}")
 

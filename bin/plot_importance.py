@@ -8,19 +8,16 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from src.config import settings, logger
+from src.data import feature_names
 
 
 def main() -> None:
     model = joblib.load(settings.base_model_dir / "xgboost.joblib")
-    feature_names = (
-        pd.read_csv(settings.processed_dir / "train.csv", nrows=1)
-        .drop(columns=[settings.label_col])
-        .columns
-    )
+    features = feature_names()
 
     clf = model.named_steps["clf"]
     importances = (
-        pd.Series(clf.feature_importances_, index=feature_names)
+        pd.Series(clf.feature_importances_, index=features)
         .sort_values(ascending=False)
         .head(20)
     )
