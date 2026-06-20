@@ -1,6 +1,5 @@
 """Plot XGBoost feature importance."""
 
-import joblib
 import matplotlib
 
 matplotlib.use("Agg")  # headless / offline safe
@@ -9,10 +8,11 @@ import pandas as pd
 
 from src.config import settings, logger
 from src.data import feature_names
+from src.io import load_model
 
 
 def main() -> None:
-    model = joblib.load(settings.base_model_dir / "xgboost.joblib")
+    model = load_model("xgboost", dir=settings.base_model_dir)
     features = feature_names()
 
     clf = model.named_steps["clf"]

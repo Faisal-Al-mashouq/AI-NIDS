@@ -15,21 +15,27 @@ from .config import settings, logger
 from .constants import METRIC_CSV_FIELDS
 
 
-def append_comparison_rows(rows: list[dict], path: Path | None = None) -> Path:
+def append_comparison_rows(
+    rows: list[dict], path: Path = settings.metrics_dir / "model_comparison.csv"
+) -> Path:
     """Append rows to model_comparison.csv. Write header only if file is new."""
-    settings.metrics_dir.mkdir(parents=True, exist_ok=True)
-    path = settings.metrics_dir / "model_comparison.csv"
+    path.mkdir(parents=True, exist_ok=True)
     write_header = not path.exists()
+
     with path.open("a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=METRIC_CSV_FIELDS)
+
         if write_header:
             writer.writeheader()
+
         for row in rows:
             writer.writerow({k: row.get(k, "") for k in METRIC_CSV_FIELDS})
+
     logger.info(f"Appended {len(rows)} rows to {path.suffix}")
 
 
 def compute_metrics(model, X, y, split_name: str) -> dict:
+    """Computes metrics of a model."""
     start = time.perf_counter()
     y_pred = model.predict(X)
     infer_time = time.perf_counter() - start
