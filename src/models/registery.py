@@ -42,7 +42,6 @@ def build_model(alias: str) -> Models:
                             "clf",
                             RandomForestClassifier(
                                 n_estimators=200,
-                                n_jobs=-1,
                                 random_state=seed,
                                 verbose=1,
                             ),
@@ -95,7 +94,7 @@ def build_models(selection: str) -> list[Models]:
     """selection: alias | 'all'"""
     retrieved_models = []
     if selection.lower() == "all":
-        retrieved_models.extend([build_model(_.lower) for _ in MODEL_ALIASES])
+        retrieved_models.extend(build_model(_) for _ in MODEL_ALIASES)
     else:
         retrieved_models = [build_model(_) for _ in selection.split()]
     return retrieved_models
@@ -106,7 +105,9 @@ if __name__ == "__main__":
     # x: list[str] = string.split()
 
     # print([build_model(_).name for _ in x])
-    x = build_models(selection)
-    print(x)
-    print("-" * 100)
-    [print(_.name) for _ in x]
+    # x = build_models(selection)
+    # print(x)
+    # print("-" * 100)
+    # [print(_.name) for _ in x]
+
+    # print(_load_model_config("logistic_regression"))

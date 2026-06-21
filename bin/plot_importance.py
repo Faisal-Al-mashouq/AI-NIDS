@@ -1,38 +1,6 @@
 """Plot XGBoost feature importance."""
 
-import matplotlib
-
-matplotlib.use("Agg")  # headless / offline safe
-import matplotlib.pyplot as plt
-import pandas as pd
-
-from src.config import settings, logger
-from src.data import feature_names
-from src.io import load_model
-
-
-def main() -> None:
-    model = load_model("xgboost", dir=settings.base_model_dir)
-    features = feature_names()
-
-    clf = model.named_steps["clf"]
-    importances = (
-        pd.Series(clf.feature_importances_, index=features)
-        .sort_values(ascending=False)
-        .head(20)
-    )
-
-    settings.figures_dir.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(8, 6))
-
-    importances[::-1].plot.barh(ax=ax)
-    ax.set_title("XGBoost - Top 20 feature importances")
-    ax.set_xlabel("Importance")
-    fig.tight_layout()
-    out = settings.figures_dir / "xgboost_feature_importance.png"
-    fig.savefig(out, dpi=120)
-    logger.info(f"Saved {out}")
-
+from src.plots import plot_xgboost_importance
 
 if __name__ == "__main__":
-    main()
+    plot_xgboost_importance()

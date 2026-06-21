@@ -15,14 +15,13 @@ from .config import settings, logger
 from .constants import METRIC_CSV_FIELDS
 
 
-def append_comparison_rows(
-    rows: list[dict], path: Path = settings.metrics_dir / "model_comparison.csv"
-) -> Path:
+def append_comparison_rows(rows: list[dict], path: Path = settings.metrics_dir) -> Path:
     """Append rows to model_comparison.csv. Write header only if file is new."""
     path.mkdir(parents=True, exist_ok=True)
-    write_header = not path.exists()
+    csv_path = path / "model_comparison.csv"
+    write_header = not csv_path.exists()
 
-    with path.open("a", newline="") as f:
+    with csv_path.open("a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=METRIC_CSV_FIELDS)
 
         if write_header:
@@ -31,7 +30,8 @@ def append_comparison_rows(
         for row in rows:
             writer.writerow({k: row.get(k, "") for k in METRIC_CSV_FIELDS})
 
-    logger.info(f"Appended {len(rows)} rows to {path.suffix}")
+    logger.info(f"Appended {len(rows)} rows to {path / "model_comparison.csv"}")
+    return csv_path
 
 
 def compute_metrics(model, X, y, split_name: str) -> dict:
@@ -73,3 +73,22 @@ def compute_metrics(model, X, y, split_name: str) -> dict:
         "tp": int(tp),
         "inference_seconds": inference_seconds,
     }
+
+
+if __name__ == "__main__":
+    print(
+        append_comparison_rows(
+            [
+                {
+                    "model": "neural_network",
+                    "split": "train",
+                    "precision": 0.8815713956773216,
+                    "recall": 0.860740422590506,
+                    "f1": 0.8710313822165175,
+                    "false_positive_rate": 0.023497499896013675,
+                    "false_negative_rate": 0.13925957740949402,
+                    "roc_auc": 0.9880190524718292,
+                }
+            ]
+        )
+    )

@@ -1,0 +1,12 @@
+logistic_regression:
+  max_iter: 1000
+random_forest:
+  n_estimators: 200
+xgboost:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.1
+  subsample: 0.9
+  colsample_bytree: 0.9
+  tree_method: "hist"
+  eval_metric: "logloss"

@@ -11,9 +11,13 @@ class Settings(BaseSettings):
     # Directories
     raw_dir: Path = repo_root / "data" / "raw"
     processed_dir: Path = repo_root / "data" / "processed"
+
     model_dir: Path = repo_root / "models"
     base_model_dir: Path = repo_root / "models" / "base"
     custom_model_dir: Path = repo_root / "models" / "custom"
+
+    configs_dir: Path = repo_root / "configs" / "model.yaml"
+
     reports_dir: Path = repo_root / "reports"
     metrics_dir: Path = repo_root / "reports" / "metrics"
     figures_dir: Path = repo_root / "reports" / "figures"

@@ -33,10 +33,10 @@ format    = "uv run black . && uv run ruff check --fix ."
 lint      = "uv run black --check . && uv run ruff check ."
 precommit = "uv run pre-commit run --all-files"
 test      = "uv run pytest"
-dataset   = "uv run bin/download_dataset.py"
-train     = "uv run bin/train.py"
-evaluate  = "uv run bin/evaluate.py"
-detect    = "uv run bin/detect.py"
+dataset   = "uv run -m bin.download_dataset"
+process   = "uv run -m bin.process_data"
+train     = "uv run -m bin.train --model all"
+plot      = "uv run -m bin.plot_importance"
 
 [dependency-groups]
 dev = [

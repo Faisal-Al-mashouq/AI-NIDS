@@ -4,10 +4,10 @@ from tqdm import tqdm
 
 from src.data import load_splits
 from src.io import save_model
-from src.models import build_models
+from src.models.registery import build_models
 from src.schemas import Models, Splits, ModelResults
 from src.metrics import append_comparison_rows, compute_metrics
-from config import logger
+from src.config import logger
 
 
 def train_one(entry: Models, splits: Splits) -> ModelResults:
