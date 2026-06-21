@@ -1,13 +1,15 @@
-from sklearn.tree import DecisionTreeClassifier
+"""Model registery: build sklearn / xgboost pipelines by CLI alias."""
+
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 
+from src.config import settings
 from src.constants import MODEL_ALIASES
 from src.schemas import Models
-from src.config import settings
 
 
 def build_model(alias: str) -> Models:
@@ -86,18 +88,15 @@ def build_model(alias: str) -> Models:
             )
         case _:
             raise ValueError(
-                f"Invalid model: {alias}. Available models: lr, dt, rf, gb, all"
+                f"Invalid model: {alias}. Available models: {MODEL_ALIASES} or 'all."
             )
 
 
 def build_models(selection: str) -> list[Models]:
-    """selection: alias | 'all'"""
-    retrieved_models = []
+    """selection: space-separated aliases, or 'all'."""
     if selection.lower() == "all":
-        retrieved_models.extend(build_model(_) for _ in MODEL_ALIASES)
-    else:
-        retrieved_models = [build_model(_) for _ in selection.split()]
-    return retrieved_models
+        return [build_model(a) for a in MODEL_ALIASES]
+    return [build_model(a) for a in selection.split()]
 
 
 if __name__ == "__main__":

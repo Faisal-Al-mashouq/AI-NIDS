@@ -35,8 +35,10 @@ precommit = "uv run pre-commit run --all-files"
 test      = "uv run pytest"
 dataset   = "uv run -m bin.download_dataset"
 process   = "uv run -m bin.process_data"
-train     = "uv run -m bin.train --model all"
+train     = "uv run -m bin.train"
+evaluate  = "uv run -m bin.evaluate"
 plot      = "uv run -m bin.plot_importance"
+detect    = "uv run -m bin.detect"
 
 [dependency-groups]
 dev = [

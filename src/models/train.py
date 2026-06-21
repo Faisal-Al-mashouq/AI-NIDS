@@ -1,13 +1,15 @@
+"""Training loop: fit pipelines, score, persist, and record metrics."""
+
 import time
 
 from tqdm import tqdm
 
-from src.data import load_splits
-from src.io import save_model
-from src.models.registery import build_models
-from src.schemas import Models, Splits, ModelResults
-from src.metrics import append_comparison_rows, compute_metrics
 from src.config import logger
+from src.data.load import load_splits
+from src.metrics import append_comparison_rows, compute_metrics
+from src.models.baseline import build_models
+from src.models.persist import save_model
+from src.schemas import Models, Splits, ModelResults
 
 
 def train_one(entry: Models, splits: Splits) -> ModelResults:
@@ -21,7 +23,7 @@ def train_one(entry: Models, splits: Splits) -> ModelResults:
         metrics["model"] = entry.name
         metrics["train_seconds"] = train_seconds
         logger.info(
-            f"  {split_name}: f1={metrics['f1']:.4f} recall={metrics['recall']:.4f}"
+            f"  {split_name}: f1={metrics['f1']:.5f} recall={metrics['recall']:.5f}"
         )
         return metrics
 
@@ -32,10 +34,10 @@ def train_one(entry: Models, splits: Splits) -> ModelResults:
     )
 
 
-def train_all(selection: str) -> list[dict]:
+def train_all(selection: list[str]) -> list[dict]:
     splits = load_splits()
 
-    rows = []
+    rows: list[dict] = []
     for entry in tqdm(build_models(selection), desc="Training models"):
         result = train_one(entry, splits)
         rows.extend(result.metric_rows())

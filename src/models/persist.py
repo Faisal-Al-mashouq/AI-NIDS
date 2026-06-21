@@ -1,9 +1,10 @@
-"""Used for saving & loading models."""
+"""Model persistence: save & load fitted pipelines."""
 
-import joblib
 from pathlib import Path
 
-from .config import logger, settings
+import joblib
+
+from src.config import settings, logger
 
 
 def save_model(pipeline, name: str, *, dir: Path = settings.base_model_dir) -> Path:
@@ -18,5 +19,4 @@ def save_model(pipeline, name: str, *, dir: Path = settings.base_model_dir) -> P
 def load_model(name: str, *, dir: Path = settings.base_model_dir):
     """Loads models by name & directory. Default path: base_model directory"""
     path = dir / f"{name}.joblib"
-    model = joblib.load(path)
-    return model
+    return joblib.load(path)
