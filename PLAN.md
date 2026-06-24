@@ -1,347 +1,385 @@
 # AI-NIDS Project Plan
 
-This document tracks the planned work for building AI-NIDS into an offline machine learning pipeline for network intrusion detection. The project will compare several modeling approaches, including classical machine learning, boosted trees, deep learning, and ensemble methods.
+This document tracks the work for building AI-NIDS into a reproducible offline
+machine-learning pipeline for network intrusion detection. It compares several
+modeling approaches — classical ML, boosted trees, and (planned) deep learning and
+ensembles — on labeled network-flow CSV data.
+
+For how to run the pipeline, see `README.md`.
 
 ## Primary Objective
 
-Build a reproducible system that can classify labeled network-flow records as either benign or malicious, then compare multiple model families to identify which approach performs best for intrusion detection.
+Build a reproducible system that classifies labeled network-flow records as benign
+or malicious, then compares multiple model families to identify which approach
+works best for intrusion detection.
 
-Initial task:
+**Current modeling target (implemented):**
 
-- Binary classification: `BENIGN` vs `ATTACK`
+- Binary classification: `BENIGN` → `0`, `ATTACK` → `1`
 
-Later extension:
+**Planned extension (not implemented):**
 
-- Multi-class classification across specific attack labels such as DDoS, PortScan, Web Attack, Infiltration, Bot, and other available dataset labels.
+- Multi-class classification across specific attack labels (DDoS, PortScan, Web
+  Attack, Infiltration, Bot, and other dataset labels)
 
 ## Success Criteria
 
-The project should produce:
+| Deliverable | Status |
+|-------------|--------|
+| Repeatable dataset preprocessing pipeline | Done |
+| Saved train/validation/test datasets | Done |
+| Trained models under `models/base/` | Done (5 model families) |
+| Evaluation metrics under `reports/metrics/` | Done |
+| Plots under `reports/figures/` | Done (class distribution, XGBoost importance) |
+| Consistent model comparison metrics | Done (`model_comparison.csv`) |
+| Detection script for new flow records | Done (`bin/detect.py`) |
+| Unit tests and CI | Done |
+| Deep learning models | Not started |
+| Ensemble methods | Not started |
+| Final project report | Not started |
 
-- a repeatable dataset preprocessing pipeline
-- saved train/test datasets
-- trained models saved under `models/`
-- evaluation metrics saved under `reports/metrics/`
-- plots saved under `reports/figures/`
-- a final model comparison using consistent metrics
-- a detection script that can classify new flow records using a saved model
+Evaluation focuses on security-relevant metrics, not only accuracy:
 
-Evaluation should focus on security-relevant metrics, not only accuracy:
-
-- precision
-- recall
-- F1-score
-- false positive rate
-- false negative rate
-- confusion matrix
-- ROC-AUC or PR-AUC where useful
+- precision, recall, F1-score
+- false positive rate, false negative rate
+- confusion matrix counts (`tn`, `fp`, `fn`, `tp`)
+- ROC-AUC
 - training and inference time
 
-## Phase 1: Data Understanding
+All metrics are recorded in `reports/metrics/model_comparison.csv` via
+`src/metrics.py`.
 
-Goal: inspect the downloaded CSV files and understand the dataset before modeling.
+---
 
-Planned actions:
+## Current Status (June 2026)
 
-- list all raw CSV files under `data/raw/network-intrusion-dataset/`
-- inspect column names, row counts, data types, and label values
-- identify the label column
-- check for missing values, infinite values, duplicate rows, and invalid numeric values
-- inspect class imbalance between benign and attack traffic
-- document the dataset shape and label distribution
+### Implemented
 
-Expected outputs:
+**Project infrastructure**
 
-- `reports/metrics/dataset_summary.json`
-- `reports/figures/class_distribution.png`
+- Python `3.12` project with `uv` dependency locking (`pyproject.toml`, `uv.lock`)
+- Formatting, linting, pre-commit, and test tasks via `taskipy`
+- GitHub Actions CI (`.github/workflows/ci.yml`) — `CI / lint-and-test` on pushes
+  and PRs to `main`
+- Hyperparameter overrides in `configs/model.yaml` (merged into in-code defaults
+  in `src/models/baseline.py`)
 
-## Phase 2: Data Preprocessing
+**Repository layout**
 
-Goal: turn the raw CSV files into clean model-ready datasets.
+- Thin CLI entry points in `bin/` (argparse → single call into `src/`)
+- Domain-oriented library code in `src/`:
+  - `data/` — load, clean, split
+  - `features/` — binary labeling, feature selection
+  - `models/` — baseline definitions, train, evaluate, persist
+  - `detection/` — classify new flows, write alerts
+  - `utils/` — paths, logging
+- Cross-cutting modules at `src/` root: `config.py`, `constants.py`, `schemas.py`,
+  `metrics.py`, `preprocessing.py`, `plots.py`
 
-Planned actions:
+**Pipeline scripts** (each exposed as a `taskipy` task; see `README.md`)
 
-- merge the raw CSV files into one dataframe
-- normalize column names
-- remove duplicate rows
-- replace infinite values with missing values
-- handle missing values consistently
-- remove columns that leak labels or are not useful for modeling
-- convert labels into binary classes: `BENIGN` and `ATTACK`
-- split data into train, validation, and test sets
-- preserve class distribution with stratified splitting
-- save processed datasets under `data/processed/`
+| Task | Script | Purpose |
+|------|--------|---------|
+| `dataset` | `bin/download_dataset.py` | Download and extract raw CSVs |
+| `process` | `bin/process_data.py` | Merge, clean, label, split → `data/processed/` |
+| `train` | `bin/train.py` | Train one or more models → `models/base/` |
+| `evaluate` | `bin/evaluate.py` | Score saved models without retraining |
+| `plot` | `bin/plot_importance.py` | XGBoost feature-importance figure |
+| `detect` | `bin/detect.py` | Classify new flow CSVs → `reports/detections.csv` |
 
-Expected scripts:
-
-- `bin/process_data.py`
-
-Expected outputs:
-
-- `data/processed/train.csv`
-- `data/processed/valid.csv`
-- `data/processed/test.csv`
-- `reports/metrics/preprocessing_summary.json`
-
-## Phase 3: Baseline Models
-
-Goal: create simple baseline results before testing more advanced methods.
-
-Planned models:
+**Trained model families** (aliases: `lr`, `dt`, `rf`, `gb`, `xgb`)
 
 - Logistic Regression
 - Decision Tree
 - Random Forest
-- Gradient Boosting with scikit-learn
+- Gradient Boosting (scikit-learn)
+- XGBoost
 
-Planned actions:
+Artifacts are saved as `models/base/<canonical_name>.joblib`.
 
-- build a reusable training pipeline with preprocessing and model fitting
-- standardize numeric features where needed
-- save each trained model with a clear name and timestamp or version
-- evaluate every model on the same validation and test splits
-- record metrics in a comparable format
+**Tests**
 
-Expected scripts:
+- `tests/test_preprocess.py` — cleaning, labeling, feature selection
+- `tests/test_training.py` — model training and artifact persistence
+- `tests/test_detection.py` — classification and alert output
 
-- `bin/train.py`
-- `bin/evaluate.py`
+**Exploratory work**
 
-Expected outputs:
+- `notebooks/01_data_exploration.ipynb` — Phase 1 data understanding; produces
+  `reports/metrics/dataset_summary.json` and
+  `reports/figures/class_distribution.png`
 
-- `models/logistic_regression.joblib`
-- `models/decision_tree.joblib`
-- `models/random_forest.joblib`
-- `models/gradient_boosting.joblib`
-- `reports/metrics/model_comparison.csv`
+### Not implemented yet
 
-## Phase 4: Boosted Tree Models
+- Multi-class attack classification
+- Deep learning models (MLP, autoencoder, etc.)
+- Ensemble methods (voting, stacking, weighted blends)
+- Optional boosted-tree variants (LightGBM, CatBoost)
+- Final project report / course write-up
 
-Goal: test stronger tree boosting methods that often perform well on tabular network-flow data.
+---
 
-Planned models:
+## Phase Tracker
 
-- XGBoost classifier
-- optional LightGBM classifier if time allows
-- optional CatBoost classifier if categorical handling becomes useful
+### Phase 0: Project Setup — Done
 
-Planned actions:
+- `uv` project, locked dependencies, `taskipy` tasks
+- Black, Ruff, pre-commit, pytest
+- GitHub Actions CI
+- Dataset downloader (`bin/download_dataset.py`)
 
-- add the selected boosting dependency only when this phase begins
-- train boosted tree models on the same processed train/validation/test split
-- tune a small set of high-impact hyperparameters
-- compare boosted tree results against the baseline models
-- measure whether performance gains justify added dependency and complexity
+Raw data source:
 
-Expected outputs:
-
-- `models/xgboost.joblib`
-- updated `reports/metrics/model_comparison.csv`
-- feature importance plot under `reports/figures/`
-
-## Phase 5: Deep Learning Models
-
-Goal: test whether neural networks improve detection performance on the processed flow features.
-
-Planned approaches:
-
-- Multi-Layer Perceptron classifier for tabular features
-- optional autoencoder-based anomaly detection
-- optional 1D CNN or sequence-style model only if the data representation supports it
-
-Planned actions:
-
-- decide between PyTorch and TensorFlow before implementation
-- scale numeric features consistently
-- create a small neural network baseline before adding complexity
-- track training loss and validation metrics
-- use early stopping to avoid overfitting
-- compare deep learning results against tree-based models
-
-Expected outputs:
-
-- saved neural network model under `models/`
-- training curve plot under `reports/figures/`
-- updated `reports/metrics/model_comparison.csv`
-
-## Phase 6: Ensemble Methods
-
-Goal: combine strong models and test whether an ensemble improves robustness.
-
-Planned approaches:
-
-- soft voting ensemble
-- hard voting ensemble
-- stacking classifier
-- weighted ensemble using validation-set performance
-
-Planned actions:
-
-- choose the best-performing classical, boosted, and deep learning models
-- combine model predictions on the validation set
-- tune ensemble weights if using weighted voting
-- evaluate the final ensemble on the held-out test set only after selection
-- compare ensemble performance against the best single model
-
-Expected outputs:
-
-- `models/ensemble.joblib`
-- final comparison metrics in `reports/metrics/model_comparison.csv`
-- confusion matrix plot for the selected final model
-
-## Phase 7: Detection Script
-
-Goal: provide a command that loads a saved model and classifies new network-flow records.
-
-Planned actions:
-
-- create `bin/detect.py`
-- accept an input CSV path
-- load the selected saved model
-- apply the same preprocessing used during training
-- output predictions and confidence scores where available
-- save detection results under `reports/`
-
-Expected command:
-
-```bash
-uv run python bin/detect.py --input data/processed/test.csv --model models/ensemble.joblib
+```text
+https://www.kaggle.com/api/v1/datasets/download/chethuhn/network-intrusion-dataset
 ```
 
-Expected outputs:
+### Phase 1: Data Understanding — Done
 
-- `reports/detections.csv`
+**Goal:** Inspect raw CSVs and document the dataset before modeling.
 
-## Phase 8: Testing And Quality
+**Completed via:** `notebooks/01_data_exploration.ipynb`
 
-Goal: keep the project reproducible and safe to change.
+**Outputs:**
 
-Planned actions:
+- `reports/metrics/dataset_summary.json`
+- `reports/figures/class_distribution.png`
 
-- add unit tests for preprocessing helpers
-- add tests for label conversion
-- add tests that verify train/validation/test split outputs exist
-- add tests that verify model training saves an artifact
-- add tests that verify evaluation writes metrics
-- keep formatting and linting passing with `uv run task lint`
+### Phase 2: Data Preprocessing — Done
 
-Expected scripts:
+**Goal:** Turn raw CSV files into clean, model-ready datasets.
 
-- `uv run pytest`
+**Implementation:** `src/preprocessing.py` (orchestration) with `src/data/*` and
+`src/features/*`; invoked by `uv run task process`.
 
-## Phase 9: Final Report
+**Outputs:**
 
-Goal: summarize the project clearly for course submission.
+- `data/processed/train.csv`
+- `data/processed/validation.csv`
+- `data/processed/test.csv`
+- `reports/metrics/preprocessing_summary.json`
 
-Planned actions:
+### Phase 3: Baseline Models — Done
 
-- explain dataset source and preprocessing decisions
-- compare each model family using the same metrics
-- discuss false positives and false negatives
-- identify the best model and explain why it was selected
-- include confusion matrices and important plots
-- document limitations and possible future work
+**Goal:** Establish simple baseline results before advanced methods.
 
-Expected outputs:
+**Models:** Logistic Regression, Decision Tree, Random Forest, scikit-learn
+Gradient Boosting.
 
-- final metrics table
-- final plots under `reports/figures/`
-- short project write-up or report section
+**Implementation:** `src/models/baseline.py`, `src/models/train.py`;
+`uv run task train --model lr|dt|rf|gb`.
 
-## Suggested Implementation Order
+**Outputs:**
 
-1. Data inspection and summary
-2. Preprocessing pipeline
-3. Baseline scikit-learn models
-4. Random Forest tuning
-5. XGBoost or another boosted tree model
-6. Deep learning baseline
-7. Ensemble model
-8. Detection script
-9. Tests and final report
+- `models/base/logistic_regression.joblib`
+- `models/base/decision_tree.joblib`
+- `models/base/random_forest.joblib`
+- `models/base/gradient_boosting.joblib`
+- Rows appended to `reports/metrics/model_comparison.csv`
+
+**Evaluation:** `uv run task evaluate --models <canonical names>` via
+`src/models/evaluate.py`.
+
+### Phase 4: Boosted Tree Models — Done (core scope)
+
+**Goal:** Test stronger tree-boosting methods on tabular flow features.
+
+**Implemented:** XGBoost (`xgb` alias); feature-importance plot via
+`uv run task plot` → `reports/figures/xgboost_feature_importance.png`.
+
+**Output:** `models/base/xgboost.joblib`
+
+**Deferred (optional):** LightGBM, CatBoost — add only if time allows and gains
+justify the extra dependencies.
+
+### Phase 5: Deep Learning Models — Not started
+
+**Goal:** Test whether neural networks improve detection on processed flow
+features.
+
+**Planned approaches:**
+
+- Multi-Layer Perceptron for tabular features
+- Optional autoencoder-based anomaly detection
+- Optional sequence/CNN model only if the representation supports it
+
+**Planned actions:**
+
+- Choose PyTorch or TensorFlow before implementation
+- Scale numeric features consistently; use early stopping
+- Save model under `models/custom/` (or a dedicated subdirectory)
+- Add training-curve plot under `reports/figures/`
+- Append metrics to `model_comparison.csv`
+
+**Dependency note:** Add the DL framework only when this phase begins to avoid
+lockfile conflicts with other branches.
+
+### Phase 6: Ensemble Methods — Not started
+
+**Goal:** Combine strong models and test whether an ensemble improves
+robustness.
+
+**Planned approaches:**
+
+- Soft/hard voting ensembles
+- Stacking classifier
+- Weighted ensemble using validation-set performance
+
+**Prerequisite:** Best classical, boosted, and (if built) deep learning models
+from earlier phases.
+
+**Expected outputs:**
+
+- `models/custom/ensemble.joblib` (or similar)
+- Final comparison in `reports/metrics/model_comparison.csv`
+- Confusion-matrix plot for the selected final model
+
+### Phase 7: Detection Script — Done
+
+**Goal:** Load a saved model and classify new network-flow records.
+
+**Implementation:** `bin/detect.py` → `src/detection/classifier.py`,
+`src/detection/alerts.py`.
+
+**Example:**
+
+```bash
+uv run task detect --input data/processed/test.csv --model xgboost
+```
+
+**Output:** `reports/detections.csv` (attack rows with predictions)
+
+### Phase 8: Testing and Quality — Done (core scope)
+
+**Goal:** Keep the project reproducible and safe to change.
+
+**Completed:**
+
+- Unit tests for preprocessing, training, and detection (`tests/`)
+- `uv run task lint`, `uv run task precommit`, `uv run task test`
+- CI runs pre-commit and pytest on every PR to `main`
+
+**Ongoing:** Expand test coverage as new model families and ensembles land.
+
+### Phase 9: Final Report — Not started
+
+**Goal:** Summarize the project for course submission.
+
+**Planned contents:**
+
+- Dataset source and preprocessing decisions
+- Per-model-family comparison using the same metrics
+- Discussion of false positives and false negatives
+- Best-model selection with justification
+- Confusion matrices and key plots from `reports/figures/`
+- Limitations and future work (multi-class labels, ensembles, etc.)
+
+---
+
+## Repository Layout
+
+```text
+AI-NIDS/
+├── bin/                         # thin CLI entry points
+│   ├── download_dataset.py
+│   ├── process_data.py          # → src.preprocessing.run
+│   ├── train.py                 # → src.models.train.train_all
+│   ├── evaluate.py              # → src.models.evaluate.evaluate_all
+│   ├── plot_importance.py       # → src.plots.plot_xgboost_importance
+│   └── detect.py                # → src.detection.*
+├── src/
+│   ├── config.py                # Settings, settings, logger
+│   ├── constants.py             # metric fields, model aliases, split files
+│   ├── schemas.py               # Splits, Models, ModelResults
+│   ├── metrics.py               # compute_metrics, append_comparison_rows
+│   ├── preprocessing.py         # pipeline composition root (run)
+│   ├── plots.py                 # plot_xgboost_importance
+│   ├── data/                    # load.py, clean.py, split.py
+│   ├── features/                # preprocess.py, selection.py
+│   ├── models/                  # baseline.py, train.py, evaluate.py, persist.py
+│   ├── detection/               # classifier.py, alerts.py
+│   └── utils/                   # paths.py, logging.py
+├── configs/
+│   └── model.yaml               # per-model hyperparameter overrides
+├── data/
+│   ├── raw/network-intrusion-dataset/
+│   └── processed/               # train.csv, validation.csv, test.csv
+├── models/
+│   ├── base/                    # trained baseline/boosted models (.joblib)
+│   └── custom/                  # future: DL, ensembles
+├── notebooks/
+│   └── 01_data_exploration.ipynb
+├── reports/
+│   ├── figures/
+│   └── metrics/
+├── tests/
+├── .github/workflows/ci.yml
+├── PLAN.md
+├── README.md
+├── pyproject.toml
+└── uv.lock
+```
+
+---
+
+## Suggested Next Steps
+
+1. **Deep learning baseline** (Phase 5) — MLP on the existing processed splits
+2. **Ensemble** (Phase 6) — combine best classical, boosted, and DL models
+3. **Final report** (Phase 9) — write-up using `model_comparison.csv` and figures
+4. **Optional:** multi-class labeling, LightGBM/CatBoost, additional notebooks
+
+---
 
 ## Notes
 
 - Keep raw data unchanged under `data/raw/`.
 - Save generated datasets under `data/processed/`.
-- Save trained model artifacts under `models/`.
+- Save trained artifacts under `models/base/` (classical/boosted) or
+  `models/custom/` (future DL/ensembles).
 - Save metrics and plots under `reports/`.
 - Use the same train/validation/test split for all model families.
-- Avoid comparing models that were trained or evaluated on different data splits.
-- Prefer simple, reproducible experiments before adding complex model architectures.
+- Run entry points as modules (`uv run -m bin.<script>`); `taskipy` tasks wrap
+  this already.
+- Generated artifacts (raw data, processed CSVs, models, metrics) should stay
+  out of Git unless small and intentionally included for submission.
+
+---
 
 ## Task Split Between Contributors
 
 Contributors:
 
-- **Faisal** : classical and boosted models plus pipeline plumbing
-- **Khalid** : evaluation, deep learning, detection, and testing
+- **Faisal:** classical and boosted models plus pipeline plumbing
+- **Khalid:** evaluation, deep learning, detection, and testing
 
-The entire plan depends on one hard constraint from the Notes: every model family
-must use the same train/validation/test split. Phases 1 and 2 are therefore a shared
-foundation that must land before the modeling work forks.
+Phases 1–4, 7, and 8 (core) are complete. Remaining work is concentrated in
+Phases 5, 6, and 9.
 
-### Step 0: Shared Foundation
+### Completed ownership (summary)
 
-Build the shared backbone first, since everything downstream depends on it:
+| Area | Owner | Status |
+|------|-------|--------|
+| Preprocessing pipeline (`bin/process_data.py`, `src/preprocessing.py`) | Faisal | Done |
+| Baseline + boosted training (`bin/train.py`, `src/models/*`) | Faisal | Done |
+| XGBoost feature-importance plot | Faisal | Done |
+| Data exploration notebook + summary artifacts | Khalid | Done |
+| Evaluation harness (`bin/evaluate.py`, `src/models/evaluate.py`) | Khalid | Done |
+| Detection script (`bin/detect.py`, `src/detection/*`) | Khalid | Done |
+| Unit tests + CI | Khalid | Done |
 
-- the preprocessing pipeline (`bin/process_data.py`) producing
-  `data/processed/{train,valid,test}.csv`
-- a shared interface contract: the metrics schema for
-  `reports/metrics/model_comparison.csv`, model artifact naming, and how
-  `bin/train.py` / `bin/evaluate.py` load data
+### Remaining work
 
-Pragmatic parallel start: Faisal owns Phases 1-2, while Khalid builds the evaluation
-harness (`bin/evaluate.py` plus metrics/plotting utilities) against a small mock split.
-Both pieces are prerequisites and are naturally separable.
+| Phase | Owner | Notes |
+|-------|-------|-------|
+| Phase 5 — Deep learning | Khalid | Add DL dependency in a dedicated PR |
+| Phase 6 — Ensemble | Both | Needs best models from Phases 3–5 |
+| Phase 9 — Final report | Both | Split by section; one owner for comparison table |
 
-### Faisal : Classical & Boosted Models + Pipeline Plumbing
+### Workflow
 
-- Phase 2: Preprocessing pipeline (`bin/process_data.py`)
-- Phase 3: Baseline models (Logistic Regression, Decision Tree, Random Forest,
-  scikit-learn Gradient Boosting) plus `bin/train.py`
-- Phase 4: Boosted trees (XGBoost, optional LightGBM/CatBoost) plus the feature
-  importance plot
-
-### Khalid : Evaluation, Deep Learning, Detection & Testing
-
-- Phase 1: Data understanding plus `dataset_summary.json` and `class_distribution.png`
-- Shared `bin/evaluate.py` plus metrics/plotting utilities (the reusable scoring code
-  both tracks consume)
-- Phase 5: Deep learning (MLP, optional autoencoder/CNN)
-- Phase 7: Detection script (`bin/detect.py`)
-- Phase 8: Testing and quality (pytest, lint)
-
-### Converge
-
-- Phase 6: Ensemble - done together, since it consumes the best classical, boosted, and
-  deep models from both tracks. Whoever has lighter load drives it.
-- Phase 9: Final report - split by section. Each contributor writes up the models they
-  built; one person owns the final comparison table and cross-model discussion.
-
-### Why This Division Works
-
-- **Balanced load.** Faisal owns more model families (Phases 3-4) plus preprocessing;
-  Khalid owns deep learning plus the surrounding infrastructure (evaluation harness,
-  detection, tests). Roughly even.
-- **Clean ownership of the shared contract.** Putting `bin/evaluate.py`, the metrics
-  schema, and tests on one person (Khalid) prevents two people from defining
-  `model_comparison.csv` differently, which would break the whole comparison.
-- **Low merge conflict surface.** Faisal touches `bin/train.py` plus classical/boosted
-  training; Khalid touches `bin/evaluate.py`, `bin/detect.py`, and `tests/`. They mostly
-  meet at the metrics CSV (append-only) and `src/config.py`.
-- **Respects the dependency chain.** The suggested implementation order is preserved;
-  only the independent branches run in parallel.
-
-### Workflow Notes
-
-All changes go through a pull request from a feature branch; direct pushes to `main` are
-blocked and `CI / lint-and-test` must pass. With two contributors:
-
-- Each person works on their own feature branch and reviews the other's PRs.
-- Land the shared preprocessing and evaluation-contract PRs first, then rebase the model
-  PRs on top to avoid fighting over `src/config.py`, `pyproject.toml`, and the metrics
-  schema.
-- Add new dependencies per phase (e.g., XGBoost only in Phase 4, PyTorch/TensorFlow only
-  in Phase 5) so the two branches do not both edit `pyproject.toml` / `uv.lock` at the
-  same time and create lockfile conflicts.
+- All changes go through a pull request from a feature branch; direct pushes to
+  `main` are blocked.
+- Required check: `CI / lint-and-test` (pre-commit + pytest).
+- Add new dependencies per phase (e.g., PyTorch/TensorFlow only in Phase 5) to
+  reduce `uv.lock` conflicts.
