@@ -18,6 +18,19 @@ data/raw/**
 data/processed/**
 data/external/**
 
+# Reports
+reports/metrics/**
+reports/figures/**
+
+# Models
+models/base/**
+models/custom/**
+
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+!reports/metrics/.gitkeep
+!reports/figures/.gitkeep
+!reports/metrics/model_comparison.csv
+!models/base/.gitkeep
+!models/custom/.gitkeep
