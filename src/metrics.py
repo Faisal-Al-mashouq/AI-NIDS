@@ -1,7 +1,9 @@
 """Shared scoring helpers used by training/evaluatation."""
 
+import csv
 import time
 
+from pathlib import Path
 from sklearn.metrics import (
     confusion_matrix,
     f1_score,
@@ -9,9 +11,31 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+from .config import settings, logger
+from .constants import METRIC_CSV_FIELDS
+
+
+def append_comparison_rows(rows: list[dict], path: Path = settings.metrics_dir) -> Path:
+    """Append rows to model_comparison.csv. Write header only if file is new."""
+    path.mkdir(parents=True, exist_ok=True)
+    csv_path = path / "model_comparison.csv"
+    write_header = not csv_path.exists()
+
+    with csv_path.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=METRIC_CSV_FIELDS)
+
+        if write_header:
+            writer.writeheader()
+
+        for row in rows:
+            writer.writerow({k: row.get(k, "") for k in METRIC_CSV_FIELDS})
+
+    logger.info(f"Appended {len(rows)} rows to {path / "model_comparison.csv"}")
+    return csv_path
 
 
 def compute_metrics(model, X, y, split_name: str) -> dict:
+    """Computes metrics of a model."""
     start = time.perf_counter()
     y_pred = model.predict(X)
     infer_time = time.perf_counter() - start
@@ -49,3 +73,22 @@ def compute_metrics(model, X, y, split_name: str) -> dict:
         "tp": int(tp),
         "inference_seconds": inference_seconds,
     }
+
+
+if __name__ == "__main__":
+    print(
+        append_comparison_rows(
+            [
+                {
+                    "model": "neural_network",
+                    "split": "train",
+                    "precision": 0.8815713956773216,
+                    "recall": 0.860740422590506,
+                    "f1": 0.8710313822165175,
+                    "false_positive_rate": 0.023497499896013675,
+                    "false_negative_rate": 0.13925957740949402,
+                    "roc_auc": 0.9880190524718292,
+                }
+            ]
+        )
+    )

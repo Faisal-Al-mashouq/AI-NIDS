@@ -1,0 +1,41 @@
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")  # headless / offline safe
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from src.config import settings, logger
+from src.data.load import feature_names
+from src.models.persist import load_model
+
+
+def plot_xgboost_importance(top_n: int = 20) -> Path:
+    model = load_model("xgboost", dir=settings.base_model_dir)
+    features = feature_names()
+
+    clf = model.named_steps["clf"]
+    importances = (
+        pd.Series(clf.feature_importances_, index=features)
+        .sort_values(ascending=False)
+        .head(top_n)
+    )
+
+    settings.figures_dir.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    importances[::-1].plot.barh(ax=ax)
+
+    ax.set_title(f"XGBoost - Top {top_n} feature importances")
+    ax.set_xlabel("Importance")
+    fig.tight_layout()
+
+    out = settings.figures_dir / "xgboost_feature_importance.png"
+    fig.savefig(out, dpi=120)
+    logger.info(f"Saved {out}")
+    return out
+
+
+if __name__ == "__main__":
+    plot_xgboost_importance()
