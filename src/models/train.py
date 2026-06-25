@@ -10,6 +10,7 @@ from src.metrics import append_comparison_rows, compute_metrics
 from src.models.baseline import build_models
 from src.models.persist import save_model
 from src.schemas import Models, Splits, ModelResults
+from src.utils.target import current_target_tag
 
 
 def train_one(entry: Models, splits: Splits) -> ModelResults:
@@ -37,11 +38,12 @@ def train_one(entry: Models, splits: Splits) -> ModelResults:
 def train_all(selection: list[str] | str) -> list[dict]:
     splits = load_splits()
     model_selection = " ".join(selection) if isinstance(selection, list) else selection
+    target = current_target_tag()
 
     rows: list[dict] = []
     for entry in tqdm(build_models(model_selection), desc="Training models"):
         result = train_one(entry, splits)
-        save_model(entry.model, entry.name)
+        save_model(entry.model, entry.name, target=target)
         model_rows = result.metric_rows()
         append_comparison_rows(model_rows)
         rows.extend(model_rows)

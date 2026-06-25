@@ -4,6 +4,7 @@ import csv
 import time
 
 from pathlib import Path
+
 import numpy as np
 from sklearn.metrics import (
     confusion_matrix,
@@ -14,12 +15,14 @@ from sklearn.metrics import (
 )
 from .config import settings, logger
 from .constants import METRIC_CSV_FIELDS
+from .utils.target import current_target_tag
 
 
 def append_comparison_rows(rows: list[dict], path: Path = settings.metrics_dir) -> Path:
     """Append rows to model_comparison.csv. Write header only if file is new."""
     path.mkdir(parents=True, exist_ok=True)
     csv_path = path / "model_comparison.csv"
+    _ensure_metric_schema(csv_path)
     write_header = not csv_path.exists()
 
     with csv_path.open("a", newline="") as f:
@@ -33,6 +36,26 @@ def append_comparison_rows(rows: list[dict], path: Path = settings.metrics_dir) 
 
     logger.info(f"Appended {len(rows)} rows to {path / "model_comparison.csv"}")
     return csv_path
+
+
+def _ensure_metric_schema(csv_path: Path) -> None:
+    """Upgrade older metrics CSVs when new columns are added."""
+    if not csv_path.exists():
+        return
+
+    with csv_path.open(newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        old_fields = reader.fieldnames or []
+
+    if old_fields == METRIC_CSV_FIELDS:
+        return
+
+    with csv_path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=METRIC_CSV_FIELDS)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: row.get(k, "") for k in METRIC_CSV_FIELDS})
 
 
 def compute_metrics(model, X, y, split_name: str) -> dict:
@@ -83,6 +106,7 @@ def compute_metrics(model, X, y, split_name: str) -> dict:
 
     return {
         "split": split_name,
+        "target": current_target_tag(),
         "precision": precision,
         "recall": recall,
         "f1": f1,

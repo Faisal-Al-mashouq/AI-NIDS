@@ -160,8 +160,10 @@ uv run task train --model mlp
 uv run task train --model ens
 ```
 
-Trained pipelines are saved under `models/base/` and metrics are appended to
-`reports/metrics/model_comparison.csv`.
+Trained pipelines are saved under `models/base/` with the active target tag in
+the filename, for example `xgboost_binary.joblib` or
+`xgboost_multiclass.joblib`. Metrics are appended to
+`reports/metrics/model_comparison.csv` with a matching `target` column.
 
 Hyperparameters come from in-code defaults in `src/models/baseline.py`. Any value
 set in `configs/model.yaml` (keyed by the model's canonical name) overrides the

@@ -1,5 +1,6 @@
 METRIC_CSV_FIELDS = [
     "model",
+    "target",
     "split",
     "precision",
     "recall",

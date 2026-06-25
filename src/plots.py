@@ -47,8 +47,12 @@ def plot_model_comparison() -> Path:
     if test_rows.empty:
         raise ValueError("No test split rows found in model_comparison.csv")
 
-    latest = test_rows.groupby("model", as_index=False).tail(1)
+    if "target" not in test_rows.columns:
+        test_rows["target"] = "unknown"
+
+    latest = test_rows.groupby(["target", "model"], as_index=False).tail(1)
     latest = latest.sort_values("f1", ascending=False)
+    latest["model_label"] = latest["target"] + "/" + latest["model"]
 
     settings.metrics_dir.mkdir(parents=True, exist_ok=True)
     comparison_csv = settings.metrics_dir / "latest_test_comparison.csv"
@@ -56,7 +60,7 @@ def plot_model_comparison() -> Path:
     logger.info(f"Saved {comparison_csv}")
 
     plot_cols = ["f1", "recall", "precision", "roc_auc"]
-    plot_df = latest.set_index("model")[plot_cols]
+    plot_df = latest.set_index("model_label")[plot_cols]
 
     settings.figures_dir.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(11, 6))
