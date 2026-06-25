@@ -1,9 +1,10 @@
-"""Splitting: stratified train/valid/test split and CSV writing"""
+"""Splitting: stratified train/valid/test split and CSV writing."""
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from src.config import settings, logger
+from src.constants import SPLIT_FILES
 
 
 def split_and_save(df: pd.DataFrame) -> dict:
@@ -38,13 +39,16 @@ def split_and_save(df: pd.DataFrame) -> dict:
     for name, (Xp, yp) in parts.items():
         out = Xp.copy()
         out[settings.label_col] = yp.values
-        path = settings.processed_dir / f"{name}.csv"
+        path = settings.processed_dir / SPLIT_FILES[name]
         out.to_csv(path, index=False)
+        class_counts = yp.value_counts().sort_index()
         counts[name] = {
             "rows": int(len(out)),
-            "attack": int(yp.sum()),
-            "benign": int((yp == 0).sum()),
+            "class_counts": {str(k): int(v) for k, v in class_counts.items()},
         }
+        if set(class_counts.index).issubset({0, 1}):
+            counts[name]["attack"] = int(class_counts.get(1, 0))
+            counts[name]["benign"] = int(class_counts.get(0, 0))
 
         logger.info(f"Saved {path} ({len(out)} rows)")
 

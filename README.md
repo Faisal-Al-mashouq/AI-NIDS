@@ -5,13 +5,13 @@ System. It turns labeled network-flow CSV files into clean, model-ready datasets
 trains and evaluates several classical and boosted-tree models, and can classify
 new flow records using a saved model.
 
-The current modeling target is binary classification:
+The default modeling target is binary classification:
 
 - `BENIGN` -> `0`
 - `ATTACK` -> `1`
 
-Planned future work (multi-class attack labels, deep learning, ensembles) is
-tracked in `PLAN.md`.
+Multi-class attack-label classification is also supported with
+`uv run task process --target multiclass`.
 
 ## Current Status
 
@@ -23,8 +23,9 @@ Implemented:
 - dataset download and extraction (`bin/download_dataset.py`)
 - preprocessing pipeline: merge, clean, label, feature-select, and stratified
   train/validation/test split (`bin/process_data.py` -> `src/preprocessing.py`)
-- model training for five model families — logistic regression, decision tree,
-  random forest, gradient boosting, and XGBoost (`bin/train.py`)
+- model training for logistic regression, decision tree, random forest,
+  gradient boosting, XGBoost, MLP neural network, and mixture-of-experts ensemble
+  (`bin/train.py`)
 - evaluation of already-saved models (`bin/evaluate.py`)
 - XGBoost feature-importance plotting (`bin/plot_importance.py`)
 - detection/inference on new flow CSVs (`bin/detect.py`)
@@ -32,9 +33,6 @@ Implemented:
 
 Not implemented yet (see `PLAN.md`):
 
-- multi-class attack classification
-- deep learning models
-- ensemble methods
 - final project report
 
 ## Repository Layout
@@ -136,21 +134,36 @@ uv run task process
 
 Merges the raw CSVs, normalizes columns, drops duplicate/invalid rows, builds the
 binary label, keeps numeric features, and writes a stratified split to
-`data/processed/{train,validation,test}.csv` plus
+`data/processed/{train,valid,test}.csv` plus
 `reports/metrics/preprocessing_summary.json`.
+
+For multi-class attack-label classification, run:
+
+```bash
+uv run task process --target multiclass
+```
+
+This writes the same split files, but `label` contains integer attack-class IDs
+instead of binary benign/attack values. The mapping is saved to
+`reports/metrics/label_mapping.json`.
 
 ### 3. Train models
 
-Train one or more models, or all of them. Aliases: `lr`, `dt`, `rf`, `gb`, `xgb`.
+Train one or more models, or all of them. Aliases: `lr`, `dt`, `rf`, `gb`, `xgb`,
+`mlp`, `ens`.
 
 ```bash
 uv run task train --model all
 uv run task train --model lr
 uv run task train --model "rf xgb"
+uv run task train --model mlp
+uv run task train --model ens
 ```
 
-Trained pipelines are saved under `models/base/` and metrics are appended to
-`reports/metrics/model_comparison.csv`.
+Trained pipelines are saved under `models/base/` with the active target tag in
+the filename, for example `xgboost_binary.joblib` or
+`xgboost_multiclass.joblib`. Metrics are appended to
+`reports/metrics/model_comparison.csv` with a matching `target` column.
 
 Hyperparameters come from in-code defaults in `src/models/baseline.py`. Any value
 set in `configs/model.yaml` (keyed by the model's canonical name) overrides the

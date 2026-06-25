@@ -31,6 +31,6 @@ models/custom/**
 !data/external/.gitkeep
 !reports/metrics/.gitkeep
 !reports/figures/.gitkeep
-!reports/metrics/model_comparison.csv
+!reports/metrics/model_comparison*.csv
 !models/base/.gitkeep
 !models/custom/.gitkeep

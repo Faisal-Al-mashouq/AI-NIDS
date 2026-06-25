@@ -37,5 +37,45 @@ def plot_xgboost_importance(top_n: int = 20) -> Path:
     return out
 
 
+def plot_model_comparison() -> Path:
+    metrics_path = settings.metrics_dir / "model_comparison.csv"
+    if not metrics_path.exists():
+        raise FileNotFoundError(f"No metrics file found at {metrics_path}")
+
+    df = pd.read_csv(metrics_path)
+    test_rows = df[df["split"] == "test"].copy()
+    if test_rows.empty:
+        raise ValueError("No test split rows found in model_comparison.csv")
+
+    if "target" not in test_rows.columns:
+        test_rows["target"] = "unknown"
+
+    latest = test_rows.groupby(["target", "model"], as_index=False).tail(1)
+    latest = latest.sort_values("f1", ascending=False)
+    latest["model_label"] = latest["target"] + "/" + latest["model"]
+
+    settings.metrics_dir.mkdir(parents=True, exist_ok=True)
+    comparison_csv = settings.metrics_dir / "latest_test_comparison.csv"
+    latest.to_csv(comparison_csv, index=False)
+    logger.info(f"Saved {comparison_csv}")
+
+    plot_cols = ["f1", "recall", "precision", "roc_auc"]
+    plot_df = latest.set_index("model_label")[plot_cols]
+
+    settings.figures_dir.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(11, 6))
+    plot_df.plot.bar(ax=ax)
+    ax.set_title("Latest test-set model comparison")
+    ax.set_ylabel("Score")
+    ax.set_ylim(0, 1.05)
+    ax.legend(loc="lower right")
+    fig.tight_layout()
+
+    out = settings.figures_dir / "model_comparison.png"
+    fig.savefig(out, dpi=120)
+    logger.info(f"Saved {out}")
+    return out
+
+
 if __name__ == "__main__":
     plot_xgboost_importance()

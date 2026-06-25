@@ -5,11 +5,12 @@ from src.data.load import load_splits
 from src.metrics import append_comparison_rows, compute_metrics
 from src.models.persist import load_model
 from src.schemas import Splits
+from src.utils.target import current_target_tag
 
 
 def evaluate_one(name: str, splits: Splits) -> list[dict]:
     """Load a saved model by name and score it on all splits."""
-    model = load_model(name)
+    model = load_model(name, target=current_target_tag())
     rows = []
     for split_name, X, y in [
         ("train", splits.X_train, splits.y_train),
