@@ -2,6 +2,10 @@ logistic_regression:
   max_iter: 1000
 random_forest:
   n_estimators: 200
+  n_jobs: -1
+gradient_boosting:
+  n_estimators: 10
+  max_depth: 3
 xgboost:
   n_estimators: 300
   max_depth: 6
@@ -10,3 +14,9 @@ xgboost:
   colsample_bytree: 0.9
   tree_method: "hist"
   eval_metric: "logloss"
+mlp_neural_network:
+  hidden_layer_sizes: [128, 64]
+  early_stopping: true
+  max_iter: 50
+mixture_of_experts:
+  gate_size: 0.25

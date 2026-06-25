@@ -38,6 +38,7 @@ process   = "uv run -m bin.process_data"
 train     = "uv run -m bin.train"
 evaluate  = "uv run -m bin.evaluate"
 plot      = "uv run -m bin.plot_importance"
+compare   = "uv run -m bin.plot_comparison"
 detect    = "uv run -m bin.detect"
 
 [dependency-groups]

@@ -3,7 +3,7 @@ import pandas as pd
 
 from src.config import settings
 from src.data.clean import clean
-from src.features.preprocess import make_binary_label
+from src.features.preprocess import make_binary_label, make_multiclass_label
 from src.features.selection import select_features
 
 
@@ -18,6 +18,14 @@ def test_make_binary_label_maps_benign_to_zero():
     df = pd.DataFrame({settings.raw_label_col: ["BENIGN", "DDoS", "PortScan"]})
     out = make_binary_label(df)
     assert out[settings.label_col].tolist() == [0, 1, 1]
+
+
+def test_make_multiclass_label_maps_each_raw_label():
+    df = pd.DataFrame({settings.raw_label_col: ["BENIGN", "DDoS", "PortScan", "DDoS"]})
+    out, mapping = make_multiclass_label(df)
+    assert mapping["BENIGN"] == 0
+    assert len(mapping) == 3
+    assert out[settings.label_col].nunique() == 3
 
 
 def test_select_features_keeps_numeric_and_label():

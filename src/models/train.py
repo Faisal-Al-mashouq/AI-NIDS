@@ -34,14 +34,16 @@ def train_one(entry: Models, splits: Splits) -> ModelResults:
     )
 
 
-def train_all(selection: list[str]) -> list[dict]:
+def train_all(selection: list[str] | str) -> list[dict]:
     splits = load_splits()
+    model_selection = " ".join(selection) if isinstance(selection, list) else selection
 
     rows: list[dict] = []
-    for entry in tqdm(build_models(selection), desc="Training models"):
+    for entry in tqdm(build_models(model_selection), desc="Training models"):
         result = train_one(entry, splits)
-        rows.extend(result.metric_rows())
         save_model(entry.model, entry.name)
+        model_rows = result.metric_rows()
+        append_comparison_rows(model_rows)
+        rows.extend(model_rows)
 
-    append_comparison_rows(rows)
     return rows

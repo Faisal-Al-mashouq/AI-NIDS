@@ -15,10 +15,10 @@ METRIC_CSV_FIELDS = [
     "train_seconds",
 ]
 
-MODEL_ALIASES: tuple[str, ...] = ("lr", "dt", "rf", "gb", "xgb")
+MODEL_ALIASES: tuple[str, ...] = ("lr", "dt", "rf", "gb", "xgb", "mlp", "ens")
 
 SPLIT_FILES = {
     "train": "train.csv",
-    "valid": "validation.csv",
+    "valid": "valid.csv",
     "test": "test.csv",
 }
